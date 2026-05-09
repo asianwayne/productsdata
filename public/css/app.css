@@ -1,0 +1,73 @@
+/* ================================================================
+   Product Database – Custom Styles
+   Uses Bootstrap 5 as the base; only overrides and additions here.
+   ================================================================ */
+
+/* ── Typography & global ──────────────────────────────────────── */
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB",
+               BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f4f6f9;
+  color: #212529;
+  font-size: 14px;
+}
+
+/* ── Navbar ───────────────────────────────────────────────────── */
+.navbar-brand { font-size: 1rem; letter-spacing: .02em; }
+.navbar .nav-link { font-size: .875rem; padding: .35rem .75rem; border-radius: .375rem; }
+.navbar .nav-link:hover,
+.navbar .nav-link.active { background: rgba(255,255,255,.15); }
+
+/* ── Cards ────────────────────────────────────────────────────── */
+.card { border-radius: .5rem; }
+.card-header { border-bottom: 1px solid #e9ecef; }
+
+/* ── Tables ───────────────────────────────────────────────────── */
+.table th {
+  font-weight: 600;
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  color: #6c757d;
+}
+.table td { font-size: .875rem; }
+.table-hover tbody tr:hover { background: #f0f4ff; }
+
+/* Extra-small button variant */
+.btn-xs {
+  padding: .15rem .4rem;
+  font-size: .75rem;
+  border-radius: .25rem;
+  line-height: 1.4;
+}
+
+/* ── Filter panel ─────────────────────────────────────────────── */
+#filterPanel .form-label { color: #495057; }
+
+/* ── Form tabs ────────────────────────────────────────────────── */
+.nav-tabs .nav-link {
+  font-size: .83rem;
+  padding: .35rem .8rem;
+  color: #495057;
+}
+.nav-tabs .nav-link.active {
+  font-weight: 600;
+  color: #0d6efd;
+}
+
+/* ── Pagination ───────────────────────────────────────────────── */
+.pagination .page-link { font-size: .8rem; padding: .25rem .55rem; }
+
+/* ── Badge tweaks ─────────────────────────────────────────────── */
+.badge { font-size: .72rem; font-weight: 500; }
+
+/* ── Sticky table header for import mapping ───────────────────── */
+.sticky-top { z-index: 1; }
+
+/* ── Scrollbar (table) ────────────────────────────────────────── */
+.table-responsive::-webkit-scrollbar { height: 5px; }
+.table-responsive::-webkit-scrollbar-thumb { background: #ced4da; border-radius: 3px; }
+
+/* ── Monospace fields ─────────────────────────────────────────── */
+.font-monospace { font-size: .8rem; }
