@@ -1,6 +1,10 @@
 <?php
-// Build export URL preserving current filters
-$exportUrl = '?' . http_build_query(array_merge(['c' => 'product', 'a' => 'export'], empty($filters) ? [] : ['f' => $filters]));
+// Build export URL preserving current filters and search
+$exportUrl = '?' . http_build_query(array_merge(
+    ['c' => 'product', 'a' => 'export'],
+    empty($filters) ? [] : ['f' => $filters],
+    empty($q) ? [] : ['q' => $q]
+));
 
 // Columns shown in table
 $listCols = array_values(array_filter($columns, fn($c) => $c['list']));
@@ -18,12 +22,38 @@ $activeFilters = count(array_filter($filters ?? [], fn($v) => trim((string)$v) !
     <span class="badge bg-secondary ms-1"><?= number_format($total) ?></span>
   </h5>
   <div class="d-flex gap-2">
+    <form method="POST" action="?c=product&a=deleteAll" class="m-0">
+      <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('确定要清空所有产品数据吗？此操作不可恢复！');">
+        <i class="bi bi-trash me-1"></i>清空数据
+      </button>
+    </form>
     <a href="<?= e($exportUrl) ?>" class="btn btn-outline-success btn-sm">
       <i class="bi bi-download me-1"></i>导出 CSV<?= $activeFilters ? '（筛选结果）' : '（全部）' ?>
     </a>
     <a href="?c=product&a=create" class="btn btn-primary btn-sm">
       <i class="bi bi-plus-lg me-1"></i>新增产品
     </a>
+  </div>
+</div>
+
+<!-- ── Global Search ──────────────────────────────────────────────── -->
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-2">
+    <form method="GET" action="" class="m-0">
+      <input type="hidden" name="c" value="product">
+      <input type="hidden" name="a" value="index">
+      <?php foreach ($filters as $k => $v): if (trim((string)$v) !== ''): ?>
+        <input type="hidden" name="f[<?= e($k) ?>]" value="<?= e($v) ?>">
+      <?php endif; endforeach; ?>
+      <div class="input-group">
+        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+        <input type="text" name="q" class="form-control border-start-0 ps-0" placeholder="全局搜索 (可搜索任何字段)..." value="<?= e($q ?? '') ?>">
+        <button class="btn btn-primary px-4" type="submit">搜索</button>
+        <?php if (!empty($q)): ?>
+          <a href="?<?= http_build_query(array_merge(['c'=>'product','a'=>'index'], !empty($filters) ? ['f'=>$filters] : [])) ?>" class="btn btn-outline-secondary">清除</a>
+        <?php endif; ?>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -44,7 +74,23 @@ $activeFilters = count(array_filter($filters ?? [], fn($v) => trim((string)$v) !
       <form method="GET" action="">
         <input type="hidden" name="c" value="product">
         <input type="hidden" name="a" value="index">
+        <?php if (!empty($q)): ?>
+        <input type="hidden" name="q" value="<?= e($q) ?>">
+        <?php endif; ?>
         <div class="row g-2">
+          <!-- Category Filter -->
+          <div class="col-md-3 col-sm-4 col-6">
+            <label class="form-label form-label-sm mb-1">所属分类</label>
+            <select name="f[category_id]" class="form-select form-select-sm">
+              <option value="">-- 全部 --</option>
+              <?php foreach ($categories as $cat): ?>
+                <option value="<?= $cat['id'] ?>" <?= ($filters['category_id'] ?? '') == $cat['id'] ? 'selected' : '' ?>>
+                  <?= e($cat['name']) ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+
           <?php foreach ($filterCols as $col): ?>
           <div class="col-md-3 col-sm-4 col-6">
             <label class="form-label form-label-sm mb-1"><?= e($col['label']) ?></label>
@@ -75,6 +121,7 @@ $activeFilters = count(array_filter($filters ?? [], fn($v) => trim((string)$v) !
       <thead class="table-light">
         <tr>
           <th class="ps-3">#</th>
+          <th>分类</th>
           <?php foreach ($listCols as $col): ?>
           <th><?= e($col['label']) ?></th>
           <?php endforeach; ?>
@@ -84,7 +131,7 @@ $activeFilters = count(array_filter($filters ?? [], fn($v) => trim((string)$v) !
       <tbody>
         <?php if (empty($rows)): ?>
         <tr>
-          <td colspan="<?= count($listCols) + 2 ?>" class="text-center text-muted py-5">
+          <td colspan="<?= count($listCols) + 3 ?>" class="text-center text-muted py-5">
             <i class="bi bi-inbox fs-3 d-block mb-2 opacity-50"></i>暂无数据
           </td>
         </tr>
@@ -92,6 +139,13 @@ $activeFilters = count(array_filter($filters ?? [], fn($v) => trim((string)$v) !
         <?php foreach ($rows as $row): ?>
         <tr>
           <td class="ps-3 text-muted small"><?= e($row['id']) ?></td>
+          <td>
+            <?php if (!empty($row['category_name'])): ?>
+              <span class="badge bg-info text-dark"><?= e($row['category_name']) ?></span>
+            <?php else: ?>
+              <span class="text-muted small">无</span>
+            <?php endif; ?>
+          </td>
           <?php foreach ($listCols as $col): ?>
           <td><?php
             $val = $row[$col['field']] ?? '';
@@ -144,6 +198,7 @@ $activeFilters = count(array_filter($filters ?? [], fn($v) => trim((string)$v) !
         <?php
         $baseParams = ['c' => 'product', 'a' => 'index'];
         if (!empty($filters)) $baseParams['f'] = $filters;
+        if (!empty($q)) $baseParams['q'] = $q;
         $prevDisabled = $page <= 1;
         $nextDisabled = $page >= $totalPages;
         ?>

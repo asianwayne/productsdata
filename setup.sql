@@ -11,17 +11,17 @@ USE `product_database`;
 
 CREATE TABLE IF NOT EXISTS `products` (
   `id`                INT UNSIGNED     AUTO_INCREMENT PRIMARY KEY,
-  `name`              VARCHAR(255)     DEFAULT NULL COMMENT '����',
-  `tqb_code`          VARCHAR(100)     DEFAULT NULL COMMENT 'TQB����',
-  `oem_number`        VARCHAR(255)     DEFAULT NULL COMMENT 'OEM����',
-  `car_series`        VARCHAR(100)     DEFAULT NULL COMMENT '��ϵ',
-  `car_model`         VARCHAR(255)     DEFAULT NULL COMMENT '����',
-  `universal_model`   VARCHAR(255)     DEFAULT NULL COMMENT 'ͨ�ó���',
-  `production_code`   VARCHAR(100)     DEFAULT NULL COMMENT '������',
-  `no_stock_purchase` VARCHAR(50)      DEFAULT NULL COMMENT '�޿����ɹ�',
-  `trade_car_series`  VARCHAR(100)     DEFAULT NULL COMMENT '��ó��ϵ',
-  `trade_car_model`   VARCHAR(255)     DEFAULT NULL COMMENT '��ó����',
-  `trade_universal`   VARCHAR(255)     DEFAULT NULL COMMENT '��óͨ�ó���',
+  `name`              VARCHAR(255)     DEFAULT NULL COMMENT '',
+  `tqb_code`          VARCHAR(100)     DEFAULT NULL COMMENT 'TQB',
+  `oem_number`        TEXT             DEFAULT NULL COMMENT 'OEM',
+  `car_series`        VARCHAR(100)     DEFAULT NULL COMMENT 'ϵ',
+  `car_model`         TEXT             DEFAULT NULL COMMENT '',
+  `universal_model`   TEXT             DEFAULT NULL COMMENT 'ͨó',
+  `production_code`   VARCHAR(100)     DEFAULT NULL COMMENT '',
+  `no_stock_purchase` VARCHAR(50)      DEFAULT NULL COMMENT '޿ɹ',
+  `trade_car_series`  VARCHAR(100)     DEFAULT NULL COMMENT 'óϵ',
+  `trade_car_model`   TEXT             DEFAULT NULL COMMENT 'ó',
+  `trade_universal`   TEXT             DEFAULT NULL COMMENT 'óͨó',
   `bca`               VARCHAR(100)     DEFAULT NULL COMMENT 'BCA',
   `skf`               VARCHAR(100)     DEFAULT NULL COMMENT 'SKF',
   `snr`               VARCHAR(100)     DEFAULT NULL COMMENT 'SNR',
@@ -58,3 +58,16 @@ CREATE TABLE IF NOT EXISTS `products` (
   INDEX `idx_car_series`  (`car_series`),
   INDEX `idx_stock_status`(`stock_status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `categories`
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `categories` (
+    `id` int(11) NOT NULL AUTO_INCREMENT,
+    `name` varchar(255) NOT NULL,
+    `description` text,
+    `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

@@ -32,9 +32,10 @@ abstract class Model
         array $conditions = [],
         array $order      = ['id' => 'ASC'],
         int   $limit      = 0,
-        int   $offset     = 0
+        int   $offset     = 0,
+        string $globalSearch = ''
     ): array {
-        [$where, $params] = static::buildWhere($conditions);
+        [$where, $params] = static::buildWhere($conditions, $globalSearch);
         $sql = "SELECT * FROM `" . static::$table . "`" . $where;
         $sql .= static::buildOrder($order);
         if ($limit > 0) {
@@ -45,9 +46,9 @@ abstract class Model
         return $stmt->fetchAll();
     }
 
-    public static function count(array $conditions = []): int
+    public static function count(array $conditions = [], string $globalSearch = ''): int
     {
-        [$where, $params] = static::buildWhere($conditions);
+        [$where, $params] = static::buildWhere($conditions, $globalSearch);
         $stmt = static::db()->prepare(
             "SELECT COUNT(*) FROM `" . static::$table . "`" . $where
         );
@@ -91,6 +92,12 @@ abstract class Model
         return $stmt->rowCount() > 0;
     }
 
+    public static function truncate(): bool
+    {
+        $stmt = static::db()->prepare("TRUNCATE TABLE `" . static::$table . "`");
+        return $stmt->execute();
+    }
+
     // ���� Helpers ������������������������������������������������������������������������������������������������������������������������������
 
     /** Keep only fillable keys; trim string values */
@@ -104,7 +111,7 @@ abstract class Model
      * Build a safe WHERE clause.
      * Only fields in $fillable are allowed (whitelist).
      */
-    protected static function buildWhere(array $conditions): array
+    protected static function buildWhere(array $conditions, string $globalSearch = ''): array
     {
         $clauses = [];
         $params  = [];
@@ -112,9 +119,27 @@ abstract class Model
             if (!in_array($field, static::$fillable, true)) continue;
             $value = trim((string) $value);
             if ($value === '') continue;
-            $clauses[] = "`{$field}` LIKE ?";
-            $params[]  = '%' . $value . '%';
+            if ($field === 'category_id' || str_ends_with($field, '_id')) {
+                $clauses[] = "`{$field}` = ?";
+                $params[]  = $value;
+            } else {
+                $clauses[] = "`{$field}` LIKE ?";
+                $params[]  = '%' . $value . '%';
+            }
         }
+        
+        $globalSearch = trim($globalSearch);
+        if ($globalSearch !== '') {
+            $globalClauses = [];
+            foreach (static::$fillable as $field) {
+                $globalClauses[] = "`{$field}` LIKE ?";
+                $params[] = '%' . $globalSearch . '%';
+            }
+            if (!empty($globalClauses)) {
+                $clauses[] = '(' . implode(' OR ', $globalClauses) . ')';
+            }
+        }
+
         return empty($clauses)
             ? ['', []]
             : [' WHERE ' . implode(' AND ', $clauses), $params];

@@ -46,6 +46,11 @@ $_a = $_GET['a'] ?? 'index';
             <i class="bi bi-upload me-1"></i>导入 CSV
           </a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link <?= ($_c==='category') ? 'active' : '' ?>" href="?c=category&a=index">
+            <i class="bi bi-tags me-1"></i>分类管理
+          </a>
+        </li>
       </ul>
     </div>
   </div>
@@ -56,9 +61,10 @@ $_a = $_GET['a'] ?? 'index';
 <?php
 // Flash messages
 $msgs = [
-    'created' => ['success', '<i class="bi bi-check-circle me-1"></i>产品已创建成功'],
-    'updated' => ['success', '<i class="bi bi-check-circle me-1"></i>产品已更新成功'],
-    'deleted' => ['warning', '<i class="bi bi-trash me-1"></i>产品已删除'],
+    'created'     => ['success', '<i class="bi bi-check-circle me-1"></i>创建成功'],
+    'updated'     => ['success', '<i class="bi bi-check-circle me-1"></i>更新成功'],
+    'deleted'     => ['warning', '<i class="bi bi-trash me-1"></i>已删除'],
+    'deleted_all' => ['warning', '<i class="bi bi-trash me-1"></i>所有产品数据已清空'],
 ];
 if (isset($_GET['msg'], $msgs[$_GET['msg']])):
     [$type, $text] = $msgs[$_GET['msg']];

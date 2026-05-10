@@ -89,9 +89,45 @@
     <strong>注意事项：</strong>
     <ul class="mb-0 mt-1 ps-3">
       <li>CSV 第一行必须是表头（列名需与上方表格中的"CSV 表头"完全一致）</li>
-      <li>导入为追加模式，不会覆盖已有数据，重复执行会重复插入</li>
+      <li>如果 <strong>TQB编码</strong> 和 <strong>OEM号码</strong> 均与数据库中完全一致，将自动跳过此行</li>
+      <li>如果存在相同的 TQB编码 但 OEM号码 不同，将自动合并新的 OEM号码，并用新数据覆盖该产品的其他字段</li>
       <li>Excel 默认保存的 .csv 通常为 GBK 编码，选"自动检测"或"GBK"即可</li>
-      <li>若需重置数据库，请在 MySQL 中执行：<code>TRUNCATE TABLE products;</code></li>
+      <li>若需彻底清空所有数据，请在“产品列表”页点击右上角的“清空数据”按钮</li>
     </ul>
   </div>
 </div>
+
+<?php if (!empty($successRows)): ?>
+<div class="card border-0 shadow-sm mt-3 border-success">
+  <div class="card-header bg-success text-white fw-medium py-2 d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-check-all me-1"></i>最近成功导入/更新的记录</span>
+    <span class="badge bg-light text-success">最多显示 20 条</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-striped table-hover mb-0 small">
+        <thead class="table-light">
+          <tr>
+            <th>TQB编码</th>
+            <th>OEM号码</th>
+            <th>车型</th>
+            <th>商品名称</th>
+            <th>BCA</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach (array_reverse($successRows) as $sRow): ?>
+          <tr>
+            <td class="font-monospace text-primary"><?= e($sRow['tqb_code'] ?? '-') ?></td>
+            <td class="text-wrap" style="max-width:300px;"><?= e($sRow['oem_number'] ?? '-') ?></td>
+            <td><?= e($sRow['car_model'] ?? '-') ?></td>
+            <td><?= e($sRow['name'] ?? '-') ?></td>
+            <td><?= e($sRow['bca'] ?? '-') ?></td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<?php endif; ?>

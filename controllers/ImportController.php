@@ -51,15 +51,16 @@ class ImportController extends Controller
         $tmp = tempnam(sys_get_temp_dir(), 'pdb_');
         file_put_contents($tmp, $content);
 
-        [$imported, $skipped, $errors] = $this->importCsv($tmp);
+        [$imported, $skipped, $errors, $successRows] = $this->importCsv($tmp);
 
         @unlink($tmp);
 
         $this->render('import/index', [
-            'columns'  => $this->columns,
-            'imported' => $imported,
-            'skipped'  => $skipped,
-            'errors'   => $errors,
+            'columns'     => $this->columns,
+            'imported'    => $imported,
+            'skipped'     => $skipped,
+            'errors'      => $errors,
+            'successRows' => $successRows,
         ]);
     }
 
@@ -81,18 +82,19 @@ class ImportController extends Controller
     private function importCsv(string $filePath): array
     {
         $handle = fopen($filePath, 'r');
-        if (!$handle) return [0, 0, ['????????']];
+        if (!$handle) return [0, 0, ['无法读取文件'], []];
 
         $headers = fgetcsv($handle);
         if (!$headers) {
             fclose($handle);
-            return [0, 0, ['CSV ????????????']];
+            return [0, 0, ['CSV 文件似乎是空的'], []];
         }
         $headers = array_map('trim', $headers);
 
         $imported = 0;
         $skipped  = 0;
         $errors   = [];
+        $successRows = [];
 
         $db = Database::getInstance();
         $db->beginTransaction();
@@ -114,17 +116,54 @@ class ImportController extends Controller
                     continue;
                 }
 
-                Product::create($data);
-                $imported++;
+                $tqbCode = $data['tqb_code'] ?? '';
+                $newOem = $data['oem_number'] ?? '';
+
+                if ($tqbCode !== '') {
+                    $existing = Product::findByTqbCode($tqbCode);
+                    if ($existing) {
+                        $existingOem = $existing['oem_number'] ?? '';
+                        
+                        $oemParts = array_filter(array_map('trim', explode('/', $existingOem)), fn($v) => $v !== '');
+                        $newOemParts = array_filter(array_map('trim', explode('/', $newOem)), fn($v) => $v !== '');
+                        
+                        // Check if all new OEMs are already in the existing OEMs
+                        $isSubset = empty(array_diff($newOemParts, $oemParts));
+                        
+                        if ($isSubset) {
+                            $skipped++;
+                            continue;
+                        } else {
+                            $mergedOem = array_unique(array_merge($oemParts, $newOemParts));
+                            $data['oem_number'] = implode('/', $mergedOem);
+
+                            $updated = Product::update($existing['id'], $data);
+                            if ($updated) {
+                                $successRows[] = $data;
+                                $imported++;
+                            } else {
+                                $skipped++;
+                            }
+                            continue;
+                        }
+                    }
+                }
+
+                $newId = Product::create($data);
+                if ($newId) {
+                    $data['id'] = $newId;
+                    $successRows[] = $data;
+                    $imported++;
+                }
             }
             $db->commit();
         } catch (Throwable $e) {
             $db->rollBack();
-            $errors[] = '???????: ' . $e->getMessage();
+            $errors[] = '导入时出错: ' . $e->getMessage();
         }
 
         fclose($handle);
-        return [$imported, $skipped, $errors];
+        return [$imported, $skipped, $errors, array_slice($successRows, -20)];
     }
 
     private function renderWithError(string $message): void

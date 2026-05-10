@@ -31,6 +31,30 @@ $firstTab  = $tabKeys[0] ?? '';
   <input type="hidden" name="id" value="<?= (int)$product['id'] ?>">
   <?php endif; ?>
 
+  <!-- Category Selection -->
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-body py-3">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-medium small mb-1">所属分类</label>
+          <select name="product[category_id]" class="form-select form-select-sm" id="categorySelect" onchange="toggleNewCategory(this)">
+            <option value="">-- 无分类 --</option>
+            <?php foreach ($categories as $cat): ?>
+              <option value="<?= $cat['id'] ?>" <?= ($product['category_id'] ?? '') == $cat['id'] ? 'selected' : '' ?>>
+                <?= e($cat['name']) ?>
+              </option>
+            <?php endforeach; ?>
+            <option value="NEW" class="fw-bold text-primary">+ 添加新分类...</option>
+          </select>
+        </div>
+        <div class="col-md-4" id="newCategoryWrapper" style="display:none;">
+          <label class="form-label fw-medium small mb-1 text-primary">新分类名称 <span class="text-danger">*</span></label>
+          <input type="text" name="new_category_name" class="form-control form-control-sm border-primary" placeholder="输入新分类名称...">
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Tab navigation -->
   <ul class="nav nav-tabs mb-0" id="formTabs" role="tablist">
     <?php foreach ($tabKeys as $i => $tab): ?>
@@ -74,3 +98,22 @@ $firstTab  = $tabKeys[0] ?? '';
        class="btn btn-outline-secondary">取消</a>
   </div>
 </form>
+
+<script>
+function toggleNewCategory(select) {
+  var wrapper = document.getElementById('newCategoryWrapper');
+  var input = wrapper.querySelector('input');
+  if (select.value === 'NEW') {
+    wrapper.style.display = 'block';
+    input.required = true;
+    input.focus();
+  } else {
+    wrapper.style.display = 'none';
+    input.required = false;
+  }
+}
+// Init on load
+document.addEventListener('DOMContentLoaded', function() {
+  toggleNewCategory(document.getElementById('categorySelect'));
+});
+</script>
