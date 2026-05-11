@@ -57,6 +57,25 @@ $_a = $_GET['a'] ?? 'index';
           </a>
         </li>
       </ul>
+
+      <!-- Logged-in user + logout -->
+      <ul class="navbar-nav ms-auto align-items-center gap-1">
+        <li class="nav-item">
+          <span class="navbar-text text-white-50 small me-1">
+            <i class="bi bi-person-circle me-1"></i><?= htmlspecialchars($_SESSION['display_name'] ?? $_SESSION['username'] ?? '', ENT_QUOTES, 'UTF-8') ?>
+            <?php if (($_SESSION['role'] ?? '') === 'admin'): ?>
+            <span class="badge bg-warning text-dark ms-1" style="font-size:.65rem;">管理员</span>
+            <?php endif; ?>
+          </span>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-white-50" href="?c=auth&a=logout"
+             onclick="return confirm('确定要退出登录吗？')"
+             title="退出登录">
+            <i class="bi bi-box-arrow-right me-1"></i>退出
+          </a>
+        </li>
+      </ul>
     </div>
   </div>
 </nav>

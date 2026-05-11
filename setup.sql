@@ -71,3 +71,20 @@ CREATE TABLE IF NOT EXISTS `categories` (
     PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- --------------------------------------------------------
+-- Table structure for table `users`
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `users` (
+  `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  `username`      VARCHAR(50)   NOT NULL,
+  `password_hash` VARCHAR(255)  NOT NULL,
+  `display_name`  VARCHAR(100)  DEFAULT NULL,
+  `role`          ENUM('admin','user') NOT NULL DEFAULT 'user',
+  `created_at`    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`    TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_username` (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- NOTE: On first visit the app will detect an empty users table and redirect
+-- you to a one-time setup page to create the administrator account.
+

@@ -14,6 +14,9 @@ header('Content-Type: text/html; charset=utf-8');
 
 define('ROOT', __DIR__);
 
+// Start session before any output
+session_start();
+
 // Global exception handler – shows a friendly error instead of a blank page
 set_exception_handler(function (Throwable $e): void {
     http_response_code(500);
@@ -56,6 +59,15 @@ spl_autoload_register(function (string $class): void {
 // Sanitize routing inputs – only letters allowed
 $c = preg_replace('/[^a-zA-Z]/', '', $_GET['c'] ?? 'product');
 $a = preg_replace('/[^a-zA-Z]/', '', $_GET['a'] ?? 'index');
+
+// ── Auth guard ──────────────────────────────────────────────────────────────
+// All routes except the auth controller require a logged-in session.
+if ($c !== 'auth') {
+    if (empty($_SESSION['user_id'])) {
+        header('Location: ?c=auth&a=login');
+        exit;
+    }
+}
 
 $controllerClass = ucfirst(strtolower($c)) . 'Controller';
 $controllerFile  = ROOT . '/controllers/' . $controllerClass . '.php';
