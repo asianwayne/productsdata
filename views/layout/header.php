@@ -47,6 +47,11 @@ $_a = $_GET['a'] ?? 'index';
           </a>
         </li>
         <li class="nav-item">
+          <a class="nav-link <?= ($_c==='match') ? 'active' : '' ?>" href="?c=match&a=index">
+            <i class="bi bi-search me-1"></i>OEM 匹配
+          </a>
+        </li>
+        <li class="nav-item">
           <a class="nav-link <?= ($_c==='category') ? 'active' : '' ?>" href="?c=category&a=index">
             <i class="bi bi-tags me-1"></i>分类管理
           </a>
