@@ -71,3 +71,118 @@ body {
 
 /* ── Monospace fields ─────────────────────────────────────────── */
 .font-monospace { font-size: .8rem; }
+
+/* ── Lightbox overlay ────────────────────────────────────────── */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, .75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .3s ease, visibility .3s ease;
+}
+.lightbox-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Toolbar (top-right) */
+.lightbox-toolbar {
+  position: absolute;
+  top: 12px;
+  right: 18px;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.lightbox-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,.15);
+  border: none;
+  color: #fff;
+  font-size: 1.35rem;
+  line-height: 1;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .2s, transform .2s;
+}
+.lightbox-btn:hover {
+  background: rgba(255,255,255,.3);
+  color: #fff;
+  transform: scale(1.1);
+}
+.lightbox-close {
+  font-size: 2rem;
+}
+
+/* Image container */
+.lightbox-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+.lightbox-img {
+  max-width: 90vw;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: .5rem;
+  box-shadow: 0 8px 40px rgba(0,0,0,.5);
+  transform: scale(.85);
+  transition: transform .35s cubic-bezier(.22,1,.36,1);
+}
+.lightbox-overlay.active .lightbox-img {
+  transform: scale(1);
+}
+
+/* Caption */
+.lightbox-caption {
+  margin-top: 10px;
+  color: rgba(255,255,255,.85);
+  font-size: .9rem;
+  text-align: center;
+  max-width: 70vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Thumbnail hover effect in table */
+.lightbox-trigger {
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.lightbox-trigger:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 12px rgba(13, 110, 253, .3);
+}
+
+/* Quick-upload placeholder in table */
+.quick-upload-trigger {
+  transition: border-color .2s, background .2s, transform .2s;
+}
+.quick-upload-trigger:hover {
+  border-color: #0d6efd !important;
+  background: #e8f0fe !important;
+  transform: scale(1.15);
+}
+.quick-upload-trigger:hover i {
+  opacity: 1 !important;
+  color: #0d6efd;
+}
+
+/* Spinner for upload-in-progress */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin-icon { animation: spin .8s linear infinite; }

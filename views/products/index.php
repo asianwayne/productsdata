@@ -146,16 +146,22 @@ $imgBase = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
           <td>
             <?php $thumb = trim((string)($row['image_path'] ?? '')); ?>
             <?php if ($thumb !== ''): ?>
-              <a href="<?= e($imgBase . '/' . ltrim($thumb, '/')) ?>" target="_blank" rel="noopener" title="查看大图">
-                <img src="<?= e($imgBase . '/' . ltrim($thumb, '/')) ?>"
-                     alt="" class="product-thumb rounded border"
-                     style="width:48px;height:48px;object-fit:cover;">
-              </a>
+              <img src="<?= e($imgBase . '/' . ltrim($thumb, '/')) ?>"
+                   alt="<?= e($row['name'] ?? '') ?>"
+                   class="product-thumb rounded border lightbox-trigger"
+                   style="width:48px;height:48px;object-fit:cover;cursor:zoom-in;"
+                   data-full="<?= e($imgBase . '/' . ltrim($thumb, '/')) ?>"
+                   data-caption="<?= e(($row['tqb_code'] ?? '') . ' – ' . ($row['name'] ?? '')) ?>"
+                   title="点击查看大图">
             <?php else: ?>
-              <span class="text-muted small d-inline-flex align-items-center justify-content-center rounded border bg-light"
-                    style="width:48px;height:48px;">
+              <label class="quick-upload-trigger d-inline-flex align-items-center justify-content-center rounded border bg-light"
+                     style="width:48px;height:48px;cursor:pointer;margin:0;"
+                     title="点击上传图片"
+                     data-id="<?= (int)$row['id'] ?>"
+                     data-caption="<?= e(($row['tqb_code'] ?? '') . ' – ' . ($row['name'] ?? '')) ?>">
                 <i class="bi bi-image opacity-50"></i>
-              </span>
+                <input type="file" accept="image/*" class="d-none quick-upload-input">
+              </label>
             <?php endif; ?>
           </td>
           <td>
@@ -243,3 +249,144 @@ $imgBase = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
   </div>
   <?php endif; ?>
 </div>
+
+<!-- ── Lightbox overlay ───────────────────────────────────────── -->
+<div id="imgLightbox" class="lightbox-overlay" aria-hidden="true">
+  <div class="lightbox-toolbar">
+    <a id="lightboxDownload" class="lightbox-btn" href="#" download title="下载图片">
+      <i class="bi bi-download"></i>
+    </a>
+    <button type="button" class="lightbox-btn lightbox-close" aria-label="关闭" title="关闭">&times;</button>
+  </div>
+  <div class="lightbox-body">
+    <img id="lightboxImg" class="lightbox-img" src="" alt="">
+    <div id="lightboxCaption" class="lightbox-caption"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const overlay  = document.getElementById('imgLightbox');
+  const lbImg    = document.getElementById('lightboxImg');
+  const lbCap    = document.getElementById('lightboxCaption');
+  const dlBtn    = document.getElementById('lightboxDownload');
+  const closeBtn = overlay.querySelector('.lightbox-close');
+
+  /* Open */
+  document.querySelectorAll('.lightbox-trigger').forEach(function(thumb){
+    thumb.addEventListener('click', function(){
+      var imgUrl = thumb.dataset.full || thumb.src;
+      lbImg.src = imgUrl;
+      lbCap.textContent = thumb.dataset.caption || '';
+      dlBtn.href = imgUrl;
+      dlBtn.download = imgUrl.split('/').pop() || 'product-image';
+      overlay.classList.add('active');
+      overlay.setAttribute('aria-hidden','false');
+      document.body.style.overflow = 'hidden';
+    });
+  });
+
+  /* Download via fetch to force save-as (avoids browser inline preview) */
+  dlBtn.addEventListener('click', function(e){
+    e.preventDefault();
+    var url = dlBtn.href;
+    var filename = dlBtn.download || 'product-image';
+    fetch(url).then(function(r){ return r.blob(); }).then(function(blob){
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(a.href);
+    });
+  });
+
+  /* Close helpers */
+  function closeLightbox(){
+    overlay.classList.remove('active');
+    overlay.setAttribute('aria-hidden','true');
+    document.body.style.overflow = '';
+    setTimeout(function(){ lbImg.src = ''; }, 300); // clear after transition
+  }
+
+  closeBtn.addEventListener('click', closeLightbox);
+  overlay.addEventListener('click', function(e){
+    if (e.target === overlay || e.target.classList.contains('lightbox-body')) closeLightbox();
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && overlay.classList.contains('active')) closeLightbox();
+  });
+})();
+</script>
+
+<script>
+/* ── Quick upload from product list ─────────────────────────── */
+(function(){
+  function bindLightbox(img) {
+    var overlay = document.getElementById('imgLightbox');
+    var lbImg   = document.getElementById('lightboxImg');
+    var lbCap   = document.getElementById('lightboxCaption');
+    var dlBtn   = document.getElementById('lightboxDownload');
+    img.addEventListener('click', function(){
+      var imgUrl = img.dataset.full || img.src;
+      lbImg.src = imgUrl;
+      lbCap.textContent = img.dataset.caption || '';
+      dlBtn.href = imgUrl;
+      dlBtn.download = imgUrl.split('/').pop() || 'product-image';
+      overlay.classList.add('active');
+      overlay.setAttribute('aria-hidden','false');
+      document.body.style.overflow = 'hidden';
+    });
+  }
+
+  document.querySelectorAll('.quick-upload-input').forEach(function(input){
+    input.addEventListener('change', function(){
+      if (!input.files || !input.files[0]) return;
+
+      var label   = input.closest('.quick-upload-trigger');
+      var id      = label.dataset.id;
+      var caption = label.dataset.caption || '';
+      var td      = label.parentElement;
+      var file    = input.files[0];
+
+      /* Show spinner */
+      var icon = label.querySelector('i');
+      icon.className = 'bi bi-arrow-repeat spin-icon';
+      icon.style.opacity = '1';
+      label.style.pointerEvents = 'none';
+
+      var fd = new FormData();
+      fd.append('id', id);
+      fd.append('image', file);
+
+      fetch('?c=product&a=uploadImage', { method: 'POST', body: fd })
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+          if (data.ok) {
+            /* Replace placeholder with real thumbnail */
+            var img = document.createElement('img');
+            img.src = data.url;
+            img.alt = caption;
+            img.className = 'product-thumb rounded border lightbox-trigger';
+            img.style.cssText = 'width:48px;height:48px;object-fit:cover;cursor:zoom-in;';
+            img.dataset.full = data.url;
+            img.dataset.caption = caption;
+            img.title = '点击查看大图';
+            td.replaceChild(img, label);
+            bindLightbox(img);
+          } else {
+            alert(data.error || '上传失败');
+            icon.className = 'bi bi-image opacity-50';
+            label.style.pointerEvents = '';
+          }
+        })
+        .catch(function(){
+          alert('上传请求失败，请重试');
+          icon.className = 'bi bi-image opacity-50';
+          label.style.pointerEvents = '';
+        });
+    });
+  });
+})();
+</script>

@@ -183,6 +183,44 @@ class ProductController extends Controller
         $this->redirect($this->url(['c' => 'product', 'a' => 'edit', 'id' => $id, 'msg' => 'updated']));
     }
 
+    /**
+     * AJAX: quick image upload from the product list (POST, returns JSON).
+     */
+    public function uploadImage(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['ok' => false, 'error' => 'Invalid method'], 405);
+        }
+        $id = (int) ($_POST['id'] ?? 0);
+        $product = Product::find($id);
+        if (!$product) {
+            $this->json(['ok' => false, 'error' => '产品不存在'], 404);
+        }
+        if (empty($_FILES['image']['name'])) {
+            $this->json(['ok' => false, 'error' => '未选择文件']);
+        }
+        $err = ImageHelper::validate($_FILES['image']);
+        if ($err !== null) {
+            $this->json(['ok' => false, 'error' => $err]);
+        }
+        try {
+            $prefix = ($product['tqb_code'] ?? '') !== ''
+                ? $product['tqb_code']
+                : ('product_' . $id);
+            $rel = ImageHelper::save($_FILES['image'], $prefix, true);
+            ImageHelper::delete($product['image_path'] ?? null);
+            Product::update($id, ['image_path' => $rel]);
+            $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
+            $this->json([
+                'ok'   => true,
+                'url'  => $base . '/' . ltrim($rel, '/'),
+                'path' => $rel,
+            ]);
+        } catch (Throwable $e) {
+            $this->json(['ok' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
     // ?? Export CSV ????????????????????????????????????????????????????????????
 
     public function export(): void
