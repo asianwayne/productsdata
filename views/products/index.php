@@ -13,6 +13,9 @@ $filterCols = array_values(array_filter($columns, fn($c) => $c['filterable']));
 
 // Current filter count
 $activeFilters = count(array_filter($filters ?? [], fn($v) => trim((string)$v) !== ''));
+
+// Base URL for product image thumbnails
+$imgBase = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
 ?>
 
 <!-- ── Page header ──────────────────────────────────────────────── -->
@@ -121,6 +124,7 @@ $activeFilters = count(array_filter($filters ?? [], fn($v) => trim((string)$v) !
       <thead class="table-light">
         <tr>
           <th class="ps-3">#</th>
+          <th>图片</th>
           <th>分类</th>
           <?php foreach ($listCols as $col): ?>
           <th><?= e($col['label']) ?></th>
@@ -131,7 +135,7 @@ $activeFilters = count(array_filter($filters ?? [], fn($v) => trim((string)$v) !
       <tbody>
         <?php if (empty($rows)): ?>
         <tr>
-          <td colspan="<?= count($listCols) + 3 ?>" class="text-center text-muted py-5">
+          <td colspan="<?= count($listCols) + 4 ?>" class="text-center text-muted py-5">
             <i class="bi bi-inbox fs-3 d-block mb-2 opacity-50"></i>暂无数据
           </td>
         </tr>
@@ -139,6 +143,21 @@ $activeFilters = count(array_filter($filters ?? [], fn($v) => trim((string)$v) !
         <?php foreach ($rows as $row): ?>
         <tr>
           <td class="ps-3 text-muted small"><?= e($row['id']) ?></td>
+          <td>
+            <?php $thumb = trim((string)($row['image_path'] ?? '')); ?>
+            <?php if ($thumb !== ''): ?>
+              <a href="<?= e($imgBase . '/' . ltrim($thumb, '/')) ?>" target="_blank" rel="noopener" title="查看大图">
+                <img src="<?= e($imgBase . '/' . ltrim($thumb, '/')) ?>"
+                     alt="" class="product-thumb rounded border"
+                     style="width:48px;height:48px;object-fit:cover;">
+              </a>
+            <?php else: ?>
+              <span class="text-muted small d-inline-flex align-items-center justify-content-center rounded border bg-light"
+                    style="width:48px;height:48px;">
+                <i class="bi bi-image opacity-50"></i>
+              </span>
+            <?php endif; ?>
+          </td>
           <td>
             <?php if (!empty($row['category_name'])): ?>
               <span class="badge bg-info text-dark"><?= e($row['category_name']) ?></span>

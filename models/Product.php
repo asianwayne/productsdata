@@ -14,6 +14,7 @@ class Product extends Model
         'bca', 'skf', 'snr', 'timken', 'nsk', 'ntn', 'koyo',
         'dimensions', 'weight', 'inner_box_size', 'spline_teeth', 'cost',
         'original_category', 'stock_status', 'in_system', 'system_code', 'warehouse_a',
+        'image_path',
         'stock_qty', 'stock_max', 'stock_min',
         'supplier1', 'supplier1_price',
         'supplier2', 'supplier2_price',

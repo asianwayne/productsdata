@@ -22,6 +22,21 @@
           <i class="bi bi-check-circle me-1"></i>
           导入完成：<strong><?= (int)$imported ?></strong> 条成功，<strong><?= (int)$skipped ?></strong> 条跳过
         </div>
+        <?php if (isset($imageSavedCount) && (int)$imageSavedCount > 0): ?>
+        <div class="alert alert-info py-2 small">
+          <i class="bi bi-image me-1"></i>
+          图片处理：上传 <strong><?= (int)$imageSavedCount ?></strong> 张，成功匹配并关联到产品 <strong><?= (int)($imageMatchCount ?? 0) ?></strong> 张
+          <?php if (!empty($imageMissing)): ?>
+            <details class="mt-1">
+              <summary class="text-muted">CSV 中存在但未上传对应图片的 TQB编码（<?= count($imageMissing) ?>）</summary>
+              <div class="mt-1 text-muted small" style="max-height:120px;overflow:auto;">
+                <?= e(implode(', ', array_slice($imageMissing, 0, 200))) ?>
+                <?= count($imageMissing) > 200 ? ' …' : '' ?>
+              </div>
+            </details>
+          <?php endif; ?>
+        </div>
+        <?php endif; ?>
         <?php if (!empty($errors)): ?>
         <div class="alert alert-warning py-2 small">
           <?php foreach ($errors as $err): ?><div><?= e($err) ?></div><?php endforeach; ?>
@@ -44,6 +59,25 @@
               <option value="gbk">GBK / GB2312（Excel 默认保存格式）</option>
               <option value="utf8">UTF-8</option>
             </select>
+          </div>
+
+          <div class="mb-3 border-top pt-3">
+            <label class="form-label fw-medium">
+              <i class="bi bi-images text-primary me-1"></i>产品图片（可选）
+            </label>
+            <input type="file" class="form-control" name="images[]" id="imagesInput"
+                   accept="image/*" multiple>
+            <div class="form-text small">
+              在文件选择器里选择图片所在的 <strong>images 文件夹中的全部图片</strong>，文件名需与 CSV 中的
+              <strong>TQB编码</strong> 一致（例如 <code>TQB0-0002.jpg</code>），后缀支持 jpg / png / gif / webp。
+            </div>
+            <div class="form-check mt-2">
+              <input class="form-check-input" type="checkbox" id="useFolderPicker">
+              <label class="form-check-label small text-muted" for="useFolderPicker">
+                改为「选择整个文件夹」（Chrome / Edge 支持）
+              </label>
+            </div>
+            <div id="imagesSummary" class="form-text mt-1"></div>
           </div>
 
           <button type="submit" class="btn btn-primary">
@@ -89,15 +123,52 @@
     <strong>注意事项：</strong>
     <ul class="mb-0 mt-1 ps-3">
       <li>CSV 第一行必须是表头（列名需与上方表格中的"CSV 表头"完全一致）</li>
-      <li>如果 <strong>TQB编码</strong> 和 <strong>OEM号码</strong> 均与数据库中完全一致，将自动跳过此行</li>
+      <li>如果 <strong>TQB编码</strong> 和 <strong>OEM号码</strong> 均与数据库中完全一致，且未上传同名图片，将自动跳过此行</li>
       <li>如果存在相同的 TQB编码 但 OEM号码 不同，将自动合并新的 OEM号码，并用新数据覆盖该产品的其他字段</li>
       <li>Excel 默认保存的 .csv 通常为 GBK 编码，选"自动检测"或"GBK"即可</li>
+      <li><strong>产品图片：</strong>将 CSV 同目录下的 <code>images/</code> 文件夹中所有图片一并上传，文件名需为该行的
+        <strong>TQB编码</strong>（不区分大小写），如 <code>TQB0-0002.jpg</code>。系统会自动把图片关联到对应产品；
+        未匹配到任何 TQB 的图片会被丢弃。</li>
       <li>若需彻底清空所有数据，请在“产品列表”页点击右上角的“清空数据”按钮</li>
     </ul>
   </div>
 </div>
 
+<script>
+(function() {
+  var picker = document.getElementById('useFolderPicker');
+  var input  = document.getElementById('imagesInput');
+  var summary = document.getElementById('imagesSummary');
+  if (!input) return;
+
+  if (picker) {
+    picker.addEventListener('change', function() {
+      if (this.checked) {
+        input.setAttribute('webkitdirectory', '');
+        input.setAttribute('directory', '');
+      } else {
+        input.removeAttribute('webkitdirectory');
+        input.removeAttribute('directory');
+      }
+      input.value = '';
+      if (summary) summary.textContent = '';
+    });
+  }
+
+  input.addEventListener('change', function() {
+    if (!summary) return;
+    var files = input.files || [];
+    var imgs = 0;
+    for (var i = 0; i < files.length; i++) {
+      if (/\.(jpe?g|png|gif|webp)$/i.test(files[i].name)) imgs++;
+    }
+    summary.textContent = '已选择 ' + files.length + ' 个文件（其中 ' + imgs + ' 张为图片）';
+  });
+})();
+</script>
+
 <?php if (!empty($successRows)): ?>
+<?php $imgBase = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/'); ?>
 <div class="card border-0 shadow-sm mt-3 border-success">
   <div class="card-header bg-success text-white fw-medium py-2 d-flex justify-content-between align-items-center">
     <span><i class="bi bi-check-all me-1"></i>最近成功导入/更新的记录</span>
@@ -108,6 +179,7 @@
       <table class="table table-sm table-striped table-hover mb-0 small">
         <thead class="table-light">
           <tr>
+            <th>图片</th>
             <th>TQB编码</th>
             <th>OEM号码</th>
             <th>车型</th>
@@ -117,7 +189,17 @@
         </thead>
         <tbody>
           <?php foreach (array_reverse($successRows) as $sRow): ?>
+          <?php $sImg = trim((string)($sRow['image_path'] ?? '')); ?>
           <tr>
+            <td>
+              <?php if ($sImg !== ''): ?>
+                <img src="<?= e($imgBase . '/' . ltrim($sImg, '/')) ?>"
+                     alt="" class="rounded border"
+                     style="width:36px;height:36px;object-fit:cover;">
+              <?php else: ?>
+                <span class="text-muted">—</span>
+              <?php endif; ?>
+            </td>
             <td class="font-monospace text-primary"><?= e($sRow['tqb_code'] ?? '-') ?></td>
             <td class="text-wrap" style="max-width:300px;"><?= e($sRow['oem_number'] ?? '-') ?></td>
             <td><?= e($sRow['car_model'] ?? '-') ?></td>

@@ -2,6 +2,7 @@
 require_once ROOT . '/core/Database.php';
 require_once ROOT . '/core/Controller.php';
 require_once ROOT . '/core/Model.php';
+require_once ROOT . '/core/ImageHelper.php';
 require_once ROOT . '/models/Product.php';
 require_once ROOT . '/models/Category.php';
 
@@ -66,7 +67,25 @@ class ProductController extends Controller
         $data = $_POST['product'] ?? [];
         $data['category_id'] = $this->resolveCategory($data, $_POST['new_category_name'] ?? '');
 
-        Product::create($data);
+        // image_path is not user-editable via the text form
+        unset($data['image_path']);
+
+        $newId = Product::create($data);
+
+        // Handle optional product image upload
+        if ($newId && !empty($_FILES['image']['name'])) {
+            $err = ImageHelper::validate($_FILES['image']);
+            if ($err === null) {
+                try {
+                    $prefix = $data['tqb_code'] !== '' ? $data['tqb_code'] : ('product_' . $newId);
+                    $rel    = ImageHelper::save($_FILES['image'], $prefix, true);
+                    Product::update($newId, ['image_path' => $rel]);
+                } catch (Throwable $e) {
+                    // Swallow image errors; product is already created.
+                }
+            }
+        }
+
         $this->redirect($this->url(['c' => 'product', 'a' => 'index', 'msg' => 'created']));
     }
 
@@ -91,6 +110,37 @@ class ProductController extends Controller
         $data = $_POST['product'] ?? [];
         $data['category_id'] = $this->resolveCategory($data, $_POST['new_category_name'] ?? '');
 
+        // image_path is not user-editable via the text form
+        unset($data['image_path']);
+
+        $existing = Product::find($id);
+
+        // Optional: remove the existing image
+        if (!empty($_POST['remove_image']) && $existing) {
+            ImageHelper::delete($existing['image_path'] ?? null);
+            $data['image_path'] = null;
+        }
+
+        // Optional: replace / set image via upload
+        if (!empty($_FILES['image']['name'])) {
+            $err = ImageHelper::validate($_FILES['image']);
+            if ($err === null) {
+                try {
+                    $prefix = ($data['tqb_code'] ?? '') !== ''
+                        ? $data['tqb_code']
+                        : ('product_' . $id);
+                    $rel = ImageHelper::save($_FILES['image'], $prefix, true);
+                    // Delete the old file once the new one is in place
+                    if ($existing) {
+                        ImageHelper::delete($existing['image_path'] ?? null);
+                    }
+                    $data['image_path'] = $rel;
+                } catch (Throwable $e) {
+                    // ignore; keep existing image
+                }
+            }
+        }
+
         Product::update($id, $data);
         $this->redirect($this->url(['c' => 'product', 'a' => 'show', 'id' => $id, 'msg' => 'updated']));
     }
@@ -101,6 +151,10 @@ class ProductController extends Controller
     {
         $this->requirePost();
         $id = (int) ($_POST['id'] ?? 0);
+        $existing = Product::find($id);
+        if ($existing) {
+            ImageHelper::delete($existing['image_path'] ?? null);
+        }
         Product::delete($id);
         $this->redirect($this->url(['c' => 'product', 'a' => 'index', 'msg' => 'deleted']));
     }
@@ -108,8 +162,25 @@ class ProductController extends Controller
     public function deleteAll(): void
     {
         $this->requirePost();
+        // Best-effort cleanup of stored image files
+        $rows = Product::all([], ['id' => 'ASC'], 0, 0, '');
+        foreach ($rows as $row) {
+            ImageHelper::delete($row['image_path'] ?? null);
+        }
         Product::truncate();
         $this->redirect($this->url(['c' => 'product', 'a' => 'index', 'msg' => 'deleted_all']));
+    }
+
+    public function deleteImage(): void
+    {
+        $this->requirePost();
+        $id = (int) ($_POST['id'] ?? 0);
+        $existing = Product::find($id);
+        if ($existing) {
+            ImageHelper::delete($existing['image_path'] ?? null);
+            Product::update($id, ['image_path' => null]);
+        }
+        $this->redirect($this->url(['c' => 'product', 'a' => 'edit', 'id' => $id, 'msg' => 'updated']));
     }
 
     // ?? Export CSV ????????????????????????????????????????????????????????????

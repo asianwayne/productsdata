@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS `products` (
   `supplier4`         VARCHAR(100)     DEFAULT NULL COMMENT '���ù�Ӧ��3',
   `supplier4_price`   VARCHAR(50)      DEFAULT NULL COMMENT '���òɹ���3',
   `warehouse_a`       VARCHAR(50)      DEFAULT NULL COMMENT 'A�ֿɳ��ж�',
+  `image_path`        VARCHAR(255)     DEFAULT NULL COMMENT '产品图片相对路径',
   `created_at`        TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
   `updated_at`        TIMESTAMP        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 

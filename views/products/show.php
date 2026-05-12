@@ -4,6 +4,10 @@ $sections = [];
 foreach ($columns as $col) {
     $sections[$col['tab']][] = $col;
 }
+
+$imgRel = trim((string)($product['image_path'] ?? ''));
+$base   = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
+$imgUrl = $imgRel !== '' ? ($base . '/' . ltrim($imgRel, '/')) : '';
 ?>
 
 <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
@@ -31,6 +35,21 @@ foreach ($columns as $col) {
     </form>
   </div>
 </div>
+
+<?php if ($imgUrl !== ''): ?>
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-header bg-light py-2 fw-medium small">
+    <i class="bi bi-image text-primary me-1"></i>产品图片
+  </div>
+  <div class="card-body py-3 text-center">
+    <a href="<?= e($imgUrl) ?>" target="_blank" rel="noopener">
+      <img src="<?= e($imgUrl) ?>" alt="产品图片"
+           class="img-fluid rounded border"
+           style="max-height:360px;object-fit:contain;">
+    </a>
+  </div>
+</div>
+<?php endif; ?>
 
 <?php foreach ($sections as $sectionName => $cols): ?>
 <div class="card border-0 shadow-sm mb-3">
