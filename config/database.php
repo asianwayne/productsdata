@@ -3,9 +3,9 @@
 // Modify these values to match your environment.
 return [
     'host'     => 'localhost',
-    'port'     => 3306,
-    'dbname'   => 'product_database',
+    'port'     => 10018,
+    'dbname'   => 'products',
     'username' => 'root',
-    'password' => '',          // change to your MySQL password
+    'password' => 'root',          // change to your MySQL password
     'charset'  => 'utf8mb4',
 ];

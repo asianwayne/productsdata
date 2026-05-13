@@ -22,10 +22,48 @@
           <i class="bi bi-check-circle me-1"></i>
           导入完成：<strong><?= (int)$imported ?></strong> 条成功，<strong><?= (int)$skipped ?></strong> 条跳过
         </div>
-        <?php if (isset($imageSavedCount) && (int)$imageSavedCount > 0): ?>
+        <?php if (isset($imageSavedCount) && ((int)$imageSavedCount > 0 || !empty($imageReport))): ?>
         <div class="alert alert-info py-2 small">
           <i class="bi bi-image me-1"></i>
           图片处理：上传 <strong><?= (int)$imageSavedCount ?></strong> 张，成功匹配并关联到产品 <strong><?= (int)($imageMatchCount ?? 0) ?></strong> 张
+          <?php if (!empty($imageUnmatched)): ?>
+            <div class="text-danger mt-1">
+              <i class="bi bi-exclamation-triangle me-1"></i>
+              <strong><?= count($imageUnmatched) ?></strong> 张图片已上传但未在 CSV 中找到对应的 TQB 编码（已自动清理）：
+              <code><?= e(implode(', ', array_slice($imageUnmatched, 0, 30))) ?><?= count($imageUnmatched) > 30 ? ' …' : '' ?></code>
+            </div>
+          <?php endif; ?>
+          <?php if (!empty($imageReport)): ?>
+            <details class="mt-1">
+              <summary class="text-muted">查看本次上传图片明细（<?= count($imageReport) ?>）</summary>
+              <div class="mt-1 small" style="max-height:200px;overflow:auto;">
+                <table class="table table-sm mb-0">
+                  <thead class="table-light">
+                    <tr><th style="width:42%">文件名</th><th>解析得到的 TQB 编码</th><th>结果</th></tr>
+                  </thead>
+                  <tbody>
+                    <?php foreach ($imageReport as $r): ?>
+                    <tr>
+                      <td class="text-truncate" style="max-width:240px;" title="<?= e($r['name'] ?? '') ?>"><?= e($r['name'] ?? '') ?></td>
+                      <td class="font-monospace text-primary"><?= e($r['key'] ?? '') ?></td>
+                      <td>
+                        <?php if (!empty($r['error'])): ?>
+                          <span class="text-danger">跳过：<?= e($r['error']) ?></span>
+                        <?php elseif (!empty($r['matched'])): ?>
+                          <span class="text-success"><i class="bi bi-check-circle me-1"></i>已关联</span>
+                        <?php elseif (!empty($r['saved'])): ?>
+                          <span class="text-warning">已上传但 CSV 无此 TQB 编码（已清理）</span>
+                        <?php else: ?>
+                          <span class="text-muted">—</span>
+                        <?php endif; ?>
+                      </td>
+                    </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          <?php endif; ?>
           <?php if (!empty($imageMissing)): ?>
             <details class="mt-1">
               <summary class="text-muted">CSV 中存在但未上传对应图片的 TQB编码（<?= count($imageMissing) ?>）</summary>
@@ -45,6 +83,7 @@
         <?php endif; ?>
 
         <form method="POST" action="?c=import&a=upload" enctype="multipart/form-data">
+          <?= csrf_field() ?>
 
           <div class="mb-3">
             <label class="form-label fw-medium">选择 CSV 文件 <span class="text-danger">*</span></label>
@@ -128,7 +167,9 @@
       <li>Excel 默认保存的 .csv 通常为 GBK 编码，选"自动检测"或"GBK"即可</li>
       <li><strong>产品图片：</strong>将 CSV 同目录下的 <code>images/</code> 文件夹中所有图片一并上传，文件名需为该行的
         <strong>TQB编码</strong>（不区分大小写），如 <code>TQB0-0002.jpg</code>。系统会自动把图片关联到对应产品；
-        未匹配到任何 TQB 的图片会被丢弃。</li>
+        若浏览器/Windows 在重复下载时自动追加了 <code>(1)</code>、<code>(2)</code>、<code> - Copy</code>、<code> - 副本</code>
+        等后缀（如 <code>TQB3-0001(3).webp</code>），系统会自动剥离这些后缀再匹配。
+        未匹配到任何 TQB 的图片会被丢弃，并在导入结果中列出。</li>
       <li>若需彻底清空所有数据，请在“产品列表”页点击右上角的“清空数据”按钮</li>
     </ul>
   </div>

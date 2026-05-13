@@ -41,6 +41,7 @@
       <?php endif; ?>
 
       <form method="POST" action="?c=auth&a=setup" autocomplete="off">
+        <input type="hidden" name="_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
 
         <div class="mb-3">
           <label class="form-label fw-medium" for="display_name">

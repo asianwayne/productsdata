@@ -46,6 +46,7 @@ $listCols = array_filter($columns ?? [], fn($c) => $c['list'] ?? false);
         <?php endif; ?>
 
         <form method="POST" action="?c=match&a=upload" enctype="multipart/form-data">
+          <?= csrf_field() ?>
           <div class="mb-3">
             <label class="form-label fw-medium">
               选择匹配 CSV 文件 <span class="text-danger">*</span>
@@ -120,6 +121,7 @@ $listCols = array_filter($columns ?? [], fn($c) => $c['list'] ?? false);
 
     <?php if (count($matchedRows) > 0): ?>
     <form method="POST" action="?c=match&a=download" class="d-inline">
+      <?= csrf_field() ?>
       <?php foreach (($oemList ?? []) as $oem): ?>
       <input type="hidden" name="oem[]" value="<?= e($oem) ?>">
       <?php endforeach; ?>
@@ -193,6 +195,7 @@ $listCols = array_filter($columns ?? [], fn($c) => $c['list'] ?? false);
   <div class="card-footer bg-white py-2 d-flex justify-content-between align-items-center small text-muted">
     <span>共 <strong><?= count($matchedRows) ?></strong> 条匹配产品</span>
     <form method="POST" action="?c=match&a=download">
+      <?= csrf_field() ?>
       <?php foreach (($oemList ?? []) as $oem): ?>
       <input type="hidden" name="oem[]" value="<?= e($oem) ?>">
       <?php endforeach; ?>

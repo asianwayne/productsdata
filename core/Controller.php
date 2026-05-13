@@ -40,4 +40,18 @@ abstract class Controller
     {
         return '?' . http_build_query($params);
     }
+
+    /**
+     * Verify the CSRF token submitted with a POST request.
+     * Terminates with a 403 response if the token is missing or invalid.
+     */
+    protected function verifyCsrf(): void
+    {
+        $sessionToken = $_SESSION['csrf_token'] ?? '';
+        $requestToken = $_POST['_token'] ?? '';
+        if ($sessionToken === '' || !hash_equals($sessionToken, $requestToken)) {
+            http_response_code(403);
+            exit('请求令牌无效，请刷新页面后重试。');
+        }
+    }
 }

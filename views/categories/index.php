@@ -62,6 +62,7 @@
                 <i class="bi bi-pencil-square"></i>
               </a>
               <form method="POST" action="?c=category&a=delete" class="d-inline-block m-0" onsubmit="return confirm('确定要删除分类 [<?= e($row['name']) ?>] 吗？此操作不可恢复！');">
+                <?= csrf_field() ?>
                 <input type="hidden" name="id" value="<?= $row['id'] ?>">
                 <button type="submit" class="btn btn-sm btn-outline-danger" title="删除">
                   <i class="bi bi-trash"></i>

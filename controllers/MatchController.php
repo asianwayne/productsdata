@@ -27,6 +27,7 @@ class MatchController extends Controller
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect($this->url(['c' => 'match', 'a' => 'index']));
         }
+        $this->verifyCsrf();
 
         $file = $_FILES['csv_file'] ?? null;
         if (!$file || $file['error'] !== UPLOAD_ERR_OK) {
@@ -67,6 +68,7 @@ class MatchController extends Controller
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect($this->url(['c' => 'match', 'a' => 'index']));
         }
+        $this->verifyCsrf();
 
         $oemList = array_filter(array_map('trim', (array)($_POST['oem'] ?? [])));
         if (empty($oemList)) {

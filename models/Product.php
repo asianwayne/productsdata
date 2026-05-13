@@ -7,6 +7,9 @@ class Product extends Model
 {
     protected static string $table = 'products';
 
+    /** Numeric FK; not a text column — also avoids SQL errors if DB predates this column */
+    protected static array $globalSearchSkip = ['category_id'];
+
     protected static array $fillable = [
         'category_id', 'name', 'tqb_code', 'oem_number', 'production_code', 'no_stock_purchase',
         'car_series', 'car_model', 'universal_model',

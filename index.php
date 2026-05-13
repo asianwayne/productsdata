@@ -17,6 +17,21 @@ define('ROOT', __DIR__);
 // Start session before any output
 session_start();
 
+// Generate a per-session CSRF token on first request
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+/**
+ * Render a hidden CSRF token input for use inside HTML forms.
+ * Usage: <?= csrf_field() ?>
+ */
+function csrf_field(): string
+{
+    $token = htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES, 'UTF-8');
+    return '<input type="hidden" name="_token" value="' . $token . '">';
+}
+
 // Global exception handler – shows a friendly error instead of a blank page
 set_exception_handler(function (Throwable $e): void {
     http_response_code(500);

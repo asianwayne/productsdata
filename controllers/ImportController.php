@@ -28,6 +28,7 @@ class ImportController extends Controller
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect($this->url(['c' => 'import', 'a' => 'index']));
         }
+        $this->verifyCsrf();
 
         $file = $_FILES['csv_file'] ?? null;
         if (!$file || $file['error'] !== UPLOAD_ERR_OK) {
@@ -54,7 +55,8 @@ class ImportController extends Controller
 
         // Pre-process the optional bundled product images.
         // The map is keyed by TQB code (case-insensitive) -> saved relative path.
-        [$imageMap, $imageErrors, $imageSavedCount] = $this->processImages($_FILES['images'] ?? null);
+        [$imageMap, $imageErrors, $imageSavedCount, $imageReport]
+            = $this->processImages($_FILES['images'] ?? null);
 
         [$imported, $skipped, $errors, $successRows, $imageMatched, $imageMissing]
             = $this->importCsv($tmp, $imageMap);
@@ -63,11 +65,21 @@ class ImportController extends Controller
 
         // Clean up any images that did NOT match a TQB code in the CSV
         // (they were saved to disk during validation; remove the orphans).
+        $imageUnmatched = [];
         foreach ($imageMap as $key => $rel) {
             if (!isset($imageMatched[$key])) {
                 ImageHelper::delete($rel);
+                $imageUnmatched[] = $key;
             }
         }
+
+        // Annotate the per-image report with the final match result.
+        foreach ($imageReport as &$row) {
+            if (!empty($row['saved']) && isset($row['key'])) {
+                $row['matched'] = isset($imageMatched[$row['key']]);
+            }
+        }
+        unset($row);
 
         $this->render('import/index', [
             'columns'         => $this->columns,
@@ -78,6 +90,8 @@ class ImportController extends Controller
             'imageSavedCount' => $imageSavedCount,
             'imageMatchCount' => count($imageMatched),
             'imageMissing'    => $imageMissing,
+            'imageUnmatched'  => $imageUnmatched,
+            'imageReport'     => $imageReport,
         ]);
     }
 
@@ -99,55 +113,113 @@ class ImportController extends Controller
     /**
      * Save uploaded images (multi-file input "images[]") to the products
      * upload directory. Returns:
-     *   [map, errors, savedCount]
-     * where `map` is keyed by the lower-cased TQB code derived from the
-     * filename basename (everything before the final ".").
+     *   [map, errors, savedCount, perFileReport]
+     * where `map` is keyed by the normalized TQB code derived from the
+     * filename basename (extension stripped, lower-cased, with common
+     * OS-added duplicate / "copy" markers like "(1)", " - Copy", " 副本"
+     * removed so e.g. "TQB3-0001(3).webp" still maps to "tqb3-0001").
      */
     private function processImages(?array $filesField): array
     {
-        if (!$filesField) return [[], [], 0];
+        if (!$filesField) return [[], [], 0, []];
 
         $files = ImageHelper::normalizeMulti($filesField);
-        if (empty($files)) return [[], [], 0];
+        if (empty($files)) return [[], [], 0, []];
 
         $map     = [];
         $errors  = [];
         $saved   = 0;
+        $report  = [];
 
         foreach ($files as $f) {
             $name = (string)($f['name'] ?? '');
-            // Browsers using <input webkitdirectory> send "subdir/file.jpg"
-            // — keep only the file's base name.
+            // Browsers using <input webkitdirectory> send "subdir/file.jpg";
+            // some legacy browsers send "C:\fakepath\file.jpg" — keep only the basename.
             $base = basename(str_replace('\\', '/', $name));
-            $tqb  = pathinfo($base, PATHINFO_FILENAME); // strip extension
-            $tqb  = trim($tqb);
-            if ($tqb === '') {
-                $errors[] = '跳过未命名图片: ' . $name;
+            $stem = trim(pathinfo($base, PATHINFO_FILENAME));
+            $key  = self::normalizeTqbKey($stem);
+
+            $entry = [
+                'name'   => $base,
+                'stem'   => $stem,
+                'key'    => $key,
+                'saved'  => false,
+                'error'  => null,
+            ];
+
+            if ($key === '') {
+                $entry['error'] = '无法从文件名解析 TQB 编码';
+                $errors[] = '跳过图片 ' . $base . '：' . $entry['error'];
+                $report[] = $entry;
                 continue;
             }
 
             $err = ImageHelper::validate($f);
             if ($err !== null) {
+                $entry['error'] = $err;
                 $errors[] = '图片 ' . $base . ' 跳过: ' . $err;
+                $report[] = $entry;
                 continue;
             }
 
             try {
-                $rel = ImageHelper::save($f, $tqb, true);
-                $key = mb_strtolower($tqb);
-                // If the same TQB appears twice, the later upload wins;
-                // delete the previous saved file to avoid orphans.
+                $rel = ImageHelper::save($f, $key, true);
+                // If the same TQB appears twice (e.g. "TQB3-0001.webp" and
+                // "TQB3-0001(2).webp"), the later upload wins; delete the
+                // previous saved file to avoid orphans.
                 if (isset($map[$key])) {
                     ImageHelper::delete($map[$key]);
                 }
-                $map[$key] = $rel;
+                $map[$key]     = $rel;
+                $entry['saved'] = true;
+                $entry['path']  = $rel;
                 $saved++;
             } catch (Throwable $e) {
+                $entry['error'] = $e->getMessage();
                 $errors[] = '图片 ' . $base . ' 保存失败: ' . $e->getMessage();
             }
+            $report[] = $entry;
         }
 
-        return [$map, $errors, $saved];
+        return [$map, $errors, $saved, $report];
+    }
+
+    /**
+     * Normalize a string into the key used to match an image to a TQB code.
+     *
+     * Lower-cases, trims, and strips common OS-added markers so the resulting
+     * key is stable across e.g.:
+     *   "TQB3-0001.webp"                -> "tqb3-0001"
+     *   "TQB3-0001 (3).webp"            -> "tqb3-0001"
+     *   "TQB3-0001(3).webp"             -> "tqb3-0001"
+     *   "TQB3-0001 - Copy.webp"         -> "tqb3-0001"
+     *   "TQB3-0001 - Copy (2).webp"     -> "tqb3-0001"
+     *   "TQB3-0001 - 副本.webp"         -> "tqb3-0001"
+     *   "images/TQB3-0001.webp"         -> "tqb3-0001"  (caller strips dir)
+     */
+    public static function normalizeTqbKey(string $value): string
+    {
+        $value = mb_strtolower(trim($value));
+        if ($value === '') return '';
+
+        // Iteratively strip the trailing duplicate/copy markers so layered
+        // patterns like "foo - copy (2)" collapse correctly.
+        $prev = null;
+        while ($prev !== $value) {
+            $prev = $value;
+            // Trailing " (N)" / "(N)"
+            $value = preg_replace('/\s*\(\s*\d+\s*\)\s*$/u', '', $value) ?? $value;
+            // Trailing copy markers: " - copy", " -copy", "_copy", " copy 2",
+            // and Chinese 副本 / 複本 / 拷贝 (optionally with a number).
+            $value = preg_replace(
+                '/\s*[-_]?\s*(?:copy|副本|複本|拷贝)\s*\d*\s*$/iu',
+                '',
+                $value
+            ) ?? $value;
+            // Trim trailing/leading separators left behind by the strips.
+            $value = preg_replace('/^[\s\-_]+|[\s\-_]+$/u', '', $value) ?? $value;
+        }
+        return $value;
     }
 
     /**
@@ -198,8 +270,11 @@ class ImportController extends Controller
                 $tqbCode = $data['tqb_code'] ?? '';
                 $newOem  = $data['oem_number'] ?? '';
 
-                // Resolve a possible image for this TQB code.
-                $imgKey   = $tqbCode !== '' ? mb_strtolower($tqbCode) : '';
+                // Resolve a possible image for this TQB code. The same
+                // normalization is applied on both sides (image filename and
+                // CSV cell) so that things like trailing whitespace, "(1)"
+                // duplicate markers, or " - Copy" suffixes still match.
+                $imgKey   = self::normalizeTqbKey($tqbCode);
                 $matchRel = ($imgKey !== '' && isset($imageMap[$imgKey])) ? $imageMap[$imgKey] : null;
 
                 if ($tqbCode !== '') {
@@ -216,7 +291,7 @@ class ImportController extends Controller
 
                         if ($isSubset && $matchRel === null) {
                             $skipped++;
-                            if ($imgKey !== '' && !isset($imageMap[$imgKey])) {
+                            if (!empty($imageMap) && $imgKey !== '' && !isset($imageMap[$imgKey])) {
                                 $imageMissing[$tqbCode] = true;
                             }
                             continue;
@@ -245,7 +320,7 @@ class ImportController extends Controller
                             $skipped++;
                         }
 
-                        if ($imgKey !== '' && $matchRel === null) {
+                        if (!empty($imageMap) && $imgKey !== '' && $matchRel === null) {
                             $imageMissing[$tqbCode] = true;
                         }
                         continue;
@@ -256,7 +331,7 @@ class ImportController extends Controller
                 if ($matchRel !== null) {
                     $data['image_path'] = $matchRel;
                     $imageMatched[$imgKey] = true;
-                } elseif ($tqbCode !== '') {
+                } elseif (!empty($imageMap) && $tqbCode !== '') {
                     $imageMissing[$tqbCode] = true;
                 }
 

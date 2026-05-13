@@ -31,6 +31,7 @@ $imageUrl     = $currentImage !== '' ? ($base . '/' . ltrim($currentImage, '/'))
 </div>
 
 <form method="POST" action="<?= e($action) ?>" autocomplete="off" enctype="multipart/form-data">
+  <?= csrf_field() ?>
   <?php if ($isEdit): ?>
   <input type="hidden" name="id" value="<?= (int)$product['id'] ?>">
   <?php endif; ?>

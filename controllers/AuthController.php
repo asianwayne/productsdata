@@ -29,6 +29,7 @@ class AuthController extends Controller
         $setupDone  = isset($_GET['msg']) && $_GET['msg'] === 'setup_done';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->verifyCsrf();
             $username = trim($_POST['username'] ?? '');
             $password = $_POST['password'] ?? '';
 
@@ -71,6 +72,7 @@ class AuthController extends Controller
         $error = null;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->verifyCsrf();
             $username    = trim($_POST['username'] ?? '');
             $password    = $_POST['password'] ?? '';
             $confirm     = $_POST['confirm_password'] ?? '';

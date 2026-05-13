@@ -70,7 +70,7 @@ product-database/
 2. Run `setup.sql` in your MySQL client:
 
 ```sql
-source F:/外贸-WAYNE-TQB/网站/product-database/setup.sql;
+source F:/外贸-WAYNE-TQB/网站/productsdata/productsdata/setup.sql;
 ```
 
 3. Edit DB credentials in `config/database.php`:
@@ -78,8 +78,8 @@ source F:/外贸-WAYNE-TQB/网站/product-database/setup.sql;
 ```php
 return [
     'host'     => 'localhost',
-    'port'     => 3306,
-    'dbname'   => 'product_database',
+    'port'     => 10018,          // match your MySQL port
+    'dbname'   => 'products',
     'username' => 'root',
     'password' => '', // update this
     'charset'  => 'utf8mb4',
@@ -93,7 +93,7 @@ return [
 If you already have a populated `products` table and just need to add the new image column, run the migration once:
 
 ```sql
-USE product_database;
+USE products;
 SOURCE migrations/001_add_image_path.sql;
 ```
 
@@ -106,7 +106,7 @@ This adds a single nullable `image_path VARCHAR(255)` column after `warehouse_a`
 In project root:
 
 ```powershell
-cd "F:\外贸-WAYNE-TQB\网站\product-database"
+cd "F:\外贸-WAYNE-TQB\网站\productsdata\productsdata"
 php -S 127.0.0.1:3333 -t .
 ```
 

@@ -191,6 +191,12 @@ class ProductController extends Controller
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->json(['ok' => false, 'error' => 'Invalid method'], 405);
         }
+        // CSRF check — return JSON so the JS error handler can surface it
+        $sessionToken = $_SESSION['csrf_token'] ?? '';
+        $requestToken = $_POST['_token'] ?? '';
+        if ($sessionToken === '' || !hash_equals($sessionToken, $requestToken)) {
+            $this->json(['ok' => false, 'error' => '请求令牌无效，请刷新页面后重试。'], 403);
+        }
         $id = (int) ($_POST['id'] ?? 0);
         $product = Product::find($id);
         if (!$product) {
@@ -280,5 +286,6 @@ class ProductController extends Controller
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect($this->url(['c' => 'product', 'a' => 'index']));
         }
+        $this->verifyCsrf();
     }
 }

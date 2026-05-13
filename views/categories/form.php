@@ -15,6 +15,7 @@
     <div class="card border-0 shadow-sm">
       <div class="card-body p-4">
         <form method="POST" action="?c=category&a=<?= $isEdit ? 'update' : 'store' ?>">
+          <?= csrf_field() ?>
           <?php if ($isEdit): ?>
             <input type="hidden" name="id" value="<?= e($category['id']) ?>">
           <?php endif; ?>

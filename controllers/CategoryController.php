@@ -62,6 +62,11 @@ class CategoryController extends Controller
     {
         $this->requirePost();
         $id = (int) ($_POST['id'] ?? 0);
+        // Nullify the FK on every product that belongs to this category
+        // so no product is left pointing at a non-existent category.
+        $db = Database::getInstance();
+        $db->prepare('UPDATE products SET category_id = NULL WHERE category_id = ?')
+           ->execute([$id]);
         Category::delete($id);
         $this->redirect($this->url(['c' => 'category', 'a' => 'index', 'msg' => 'deleted']));
     }
@@ -81,5 +86,6 @@ class CategoryController extends Controller
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect($this->url(['c' => 'category', 'a' => 'index']));
         }
+        $this->verifyCsrf();
     }
 }

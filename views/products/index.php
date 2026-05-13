@@ -26,6 +26,7 @@ $imgBase = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
   </h5>
   <div class="d-flex gap-2">
     <form method="POST" action="?c=product&a=deleteAll" class="m-0">
+      <?= csrf_field() ?>
       <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('确定要清空所有产品数据吗？此操作不可恢复！');">
         <i class="bi bi-trash me-1"></i>清空数据
       </button>
@@ -198,6 +199,7 @@ $imgBase = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
               <i class="bi bi-pencil"></i>
             </a>
             <form method="POST" action="?c=product&a=delete" class="d-inline ms-1">
+              <?= csrf_field() ?>
               <input type="hidden" name="id" value="<?= $row['id'] ?>">
               <button type="submit" class="btn btn-xs btn-outline-danger"
                       data-confirm="确定要删除「<?= e($row['tqb_code'] ?: $row['name']) ?>」吗？" title="删除">
@@ -356,9 +358,11 @@ $imgBase = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
       icon.style.opacity = '1';
       label.style.pointerEvents = 'none';
 
+      var csrfToken = (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
       var fd = new FormData();
       fd.append('id', id);
       fd.append('image', file);
+      fd.append('_token', csrfToken);
 
       fetch('?c=product&a=uploadImage', { method: 'POST', body: fd })
         .then(function(r){ return r.json(); })

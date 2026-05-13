@@ -8,6 +8,9 @@ abstract class Model
     protected static string $table    = '';
     protected static array  $fillable = [];
 
+    /** Fillable keys omitted from the global text search (q) OR/LIKE clause */
+    protected static array $globalSearchSkip = [];
+
     // ���� Connection ������������������������������������������������������������������������������������������������������������������������
 
     protected static function db(): PDO
@@ -132,6 +135,9 @@ abstract class Model
         if ($globalSearch !== '') {
             $globalClauses = [];
             foreach (static::$fillable as $field) {
+                if (in_array($field, static::$globalSearchSkip, true)) {
+                    continue;
+                }
                 $globalClauses[] = "`{$field}` LIKE ?";
                 $params[] = '%' . $globalSearch . '%';
             }

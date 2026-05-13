@@ -27,6 +27,7 @@ $imgUrl = $imgRel !== '' ? ($base . '/' . ltrim($imgRel, '/')) : '';
       <i class="bi bi-pencil me-1"></i>编辑
     </a>
     <form method="POST" action="?c=product&a=delete" class="d-inline">
+      <?= csrf_field() ?>
       <input type="hidden" name="id" value="<?= (int)$product['id'] ?>">
       <button type="submit" class="btn btn-outline-danger btn-sm"
               data-confirm="确定删除「<?= e($product['tqb_code'] ?? $product['name'] ?? '') ?>」吗？">

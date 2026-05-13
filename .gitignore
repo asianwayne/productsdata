@@ -1,0 +1,21 @@
+# Database credentials – never commit
+config/database.php
+
+# Uploaded product images
+public/uploads/products/*
+!public/uploads/products/index.html
+
+# Loose images staged for import
+images/
+
+# PHP temp / logs
+*.log
+*.tmp
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
